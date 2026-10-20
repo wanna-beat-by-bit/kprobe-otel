@@ -1,4 +1,3 @@
-// C0 exit test: fire one line per execve into the kernel trace pipe.
 #include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 
