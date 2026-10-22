@@ -21,9 +21,6 @@ int hello_execve(void *ctx)
     ev->pid = bpf_get_current_pid_tgid() >> 32;
     bpf_get_current_comm(&ev->comm, sizeof(ev->comm));
     bpf_ringbuf_submit(ev, 0);
-	// char comm[TASK_COMM_LEN];
 
-	// bpf_get_current_comm(&comm, sizeof(comm));
-	// bpf_printk("execve from pid=%d comm=%s\n", bpf_get_current_pid_tgid() >> 32, comm);
 	return 0;
 }
