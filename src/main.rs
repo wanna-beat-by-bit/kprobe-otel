@@ -38,7 +38,8 @@ async fn main() -> Result<()> {
                 let mut guard = guard?;
                 while let Some(item) = guard.get_inner_mut().next() {
                     let ev: &Event = unsafe {&*(item.as_ptr() as *const Event)};
-                    println!("pid: {}, event: {}", ev.pid, String::from_utf8_lossy(&ev.comm));
+                    let null_terminator = ev.comm.iter().position(|&b| b == 0).unwrap_or(ev.comm.len());
+                    println!("pid: {}, event: {}", ev.pid, String::from_utf8_lossy(&ev.comm[..null_terminator]));
                 }
                 guard.clear_ready();
             }
