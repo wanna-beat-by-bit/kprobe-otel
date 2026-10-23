@@ -9,7 +9,7 @@ char LICENSE[] SEC("license") = "GPL";
 
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, SIZE_KB(4)); 
+    __uint(max_entries, SIZE_KB(256)); 
 } EVENTS SEC(".maps");
 
 struct {
