@@ -9,7 +9,7 @@ struct Event {
     pid: u32,
     comm: [u8; 16],
     path: [u8; 16],
-    kind: u8,
+    kind: u32,
 }
 
 const EXECVE_PROBE_ID: u32 = 0;

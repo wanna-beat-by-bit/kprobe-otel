@@ -11,6 +11,8 @@
 
 #define MAX_PATH 4096
 
+#define KEY_PTR(n) (&(__u32){(n)})
+
 char LICENSE[] SEC("license") = "GPL";
 
 struct
@@ -31,7 +33,7 @@ struct event
 {
     __u32 pid;
     char comm[16];
-    __u8 kind;
+    __u32 kind;
 };
 
 struct event_buf
@@ -46,7 +48,7 @@ struct
     __uint(max_entries, 1);
     __type(key, __u32);
     __type(value, struct event_buf);
-} PERCPU_ARRAY SEC(".maps");
+} SCRATCH SEC(".maps");
 
 static __always_inline int
 event_drop(__u32 probe_id)
@@ -58,7 +60,7 @@ event_drop(__u32 probe_id)
     return 0;
 }
 
-static __always_inline get_path_argv(struct trace_event_raw_sys_enter *ctx, size_t *len, void *dst)
+static void __always_inline get_path_argv(struct trace_event_raw_sys_enter *ctx, long *len, void *dst)
 {
     const char *filename_addr = (const char *)ctx->args[FILENAME_ARG];
     *len = bpf_probe_read_user_str(dst, MAX_PATH, filename_addr);
@@ -89,18 +91,22 @@ SEC("tracepoint/syscalls/sys_enter_openat")
 int openat_probe(struct trace_event_raw_sys_enter *ctx)
 {
     struct event_buf *buf;
-    __u32 key = 0;
-    buf = bpf_map_lookup_elem(&PERCPU_ARRAY, &key);
+    buf = bpf_map_lookup_elem(&SCRATCH, KEY_PTR(0)); // & key);
     if (!buf)
         return event_drop(OPENAT_PROBE_ID);
 
-    size_t path_len = 0;
+    long path_len = 0;
+
     get_path_argv(ctx, &path_len, buf->path);
+    if (path_len > MAX_PATH)
+        return event_drop(OPENAT_PROBE_ID);
+
     buf->hdr.pid = bpf_get_current_pid_tgid() >> 32;
     buf->hdr.kind = OPENAT_PROBE_ID;
     bpf_get_current_comm(&buf->hdr.comm, sizeof(buf->hdr.comm));
 
-    bpf_ringbuf_output(&EVENTS, buf, sizeof(struct event_buf) + path_len, 0);
+    if (bpf_ringbuf_output(&EVENTS, buf, sizeof(struct event) + path_len, 0) < 0)
+        return event_drop(OPENAT_PROBE_ID);
 
     return 0;
 }
